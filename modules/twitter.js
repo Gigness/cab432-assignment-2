@@ -11,7 +11,7 @@ var apiEndPoint = 'https://api.twitter.com';
 var apiVersion = '/1.1';
 var tokenRequest = '/oauth2/token';
 var rateLimit = '/application/rate_limit_status.json?resources=search,application';
-var search = '/search/tweets.json';
+var search = '/search/tweets.json?';
 /**
  * searchTweets
  * @param req
@@ -62,22 +62,55 @@ function getRateLimit(req, res, token) {
 
 function searchTweetsPromise(req, res, token, hashTags) {
     var body = [];
-    var path = search;
-    hashTags.forEach(function(tag) {
-        path = path + tag;
-    });
+    var path = apiVersion + search;
+    var language = 'en';
+    var count = 100;
+    var tweetType = 'popular';
 
-    console.log(path);
+    var query = {
+        q: hashTags,
+        lang: language,
+        count: count,
+        result_type: tweetType
+    };
 
-    path = encodeURIComponent(path);
+    var encodedQuery = querystring.stringify(query);
+
+    path = path + encodedQuery;
 
     console.log(path);
 
     var options = {
         hostname: hostName,
         path: path,
-        method: 'Get'
-    }
+        method: 'Get',
+        headers: {
+            'Authorization': 'Bearer ' + token
+        }
+    };
+
+    return new Promise(function(resolve, reject) {
+        twitterReq = https.request(options, function(twitterRes) {
+            twitterRes.on('data', function(chunk) {
+                body.push(chunk);
+            });
+
+            twitterRes.on('end', function() {
+                var results = JSON.parse(body.join(''));
+                resolve(results);
+            });
+
+            twitterRes.on('error', function(e) {
+                console.log(e);
+                reject(e);
+
+            })
+
+        });
+
+        twitterReq.end();
+    });
+
 }
 
 /**
@@ -179,5 +212,6 @@ function requestAccessTokenPromise(req, res) {
 module.exports = {
     "requestAccessToken": requestAccessToken,
     "requestAccessTokenPromise": requestAccessTokenPromise,
-    "getRateLimit": getRateLimit
+    "getRateLimit": getRateLimit,
+    "searchTweets": searchTweetsPromise
 };

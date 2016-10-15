@@ -13,11 +13,61 @@ router.get('/', function(req, res, next) {
     tokenRequest.then(function(result) {
 
         var token = result.access_token;
+
         twitter.getRateLimit(req, res, token);
+
 
     }).catch(function(error) {
         res.send(error);
     });
+
+});
+
+
+router.get('/search', function(req, res, next) {
+
+    var hashTags = ['#trump'];
+
+    var tokenRequest = twitter.requestAccessTokenPromise(req, res);
+
+    tokenRequest.then(function(result) {
+
+        var token = result.access_token;
+
+        var searchTweetsRequest = twitter.searchTweets(req, res, token, hashTags);
+        // console.log(token);
+        searchTweetsRequest.then(function(result) {
+
+            var tweets = [];
+            var analysis = [];
+
+            result.statuses.forEach(function(status) {
+               tweets.push(status.text);
+            });
+
+
+            tweets.forEach(function(tweet) {
+               analysis.push(sentiment(tweet));
+            });
+            // tweets.forEach(function(tweet) {
+            //    var sentimentObj = sentiment(tweet);
+            //     sentiment.push(sentimentObj);
+            // });
+            // console.log(tweets);
+            console.log(analysis);
+            // console.log(result);
+            // process tweets object
+
+            res.send(result);
+        }).catch(function(error) {
+            res.send(error);
+        });
+
+    }).catch(function(error) {
+        res.send(error);
+    });
+
+
 
 });
 
